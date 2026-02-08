@@ -24,28 +24,7 @@ router.get("/", async (req, res, next) => {
 });
 
 router.post("/", async (req, res, next) => {
-  console.log(req.body); // 👈 shtoje këtë
-  try {
-    const newProfile = await Profile.create(req.body);
-    res.status(201).json(newProfile);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post("/", async (req, res, next) => {
-  console.log(req.body); // 👈 shtoje këtë
-  try {
-    const newProfile = await Profile.create(req.body);
-    res.status(201).json(newProfile);
-  } catch (error) {
-    next(error);
-  }
-});
-
-
-router.post("/", async (req, res, next) => {
-  console.log(req.body); // 👈 shtoje këtë
+  console.log(req.body); 
   try {
     const newProfile = await Profile.create(req.body);
     res.status(201).json(newProfile);
