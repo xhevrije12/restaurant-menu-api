@@ -1,37 +1,64 @@
 import express from "express";
 import Profile from "../models/profile.js";
+import protect from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
-// CREATE profile
-router.post("/", async (req, res, next) => {
-  try {
-    const newProfile = await Profile.create(req.body);
-    res.status(201).json(newProfile);
-  } catch (error) {
-    next(error);
+/**
+ * CREATE profile (vetëm 1 herë)
+ * POST /api/profile
+ */
+router.post("/", protect, async (req, res) => {
+  const { name, email, age } = req.body;
+
+  const profileExists = await Profile.findOne({ user: req.user._id });
+  if (profileExists) {
+    return res.status(400).json({ message: "Profile already exists" });
   }
+
+  const profile = await Profile.create({
+    user: req.user._id,
+    name,
+    email,
+    age,
+  });
+
+  res.status(201).json(profile);
 });
 
-// GET all profiles
-router.get("/", async (req, res, next) => {
-  try {
-    const profiles = await Profile.find();
-    res.status(200).json(profiles);
-  } catch (error) {
-    next(error);
+/**
+ * GET my profile
+ * GET /api/profile/me
+ */
+router.get("/me", protect, async (req, res) => {
+  const profile = await Profile.findOne({ user: req.user._id });
+
+  if (!profile) {
+    return res.status(404).json({ message: "Profile not found" });
   }
+
+  res.json(profile);
 });
 
-router.post("/", async (req, res, next) => {
-  console.log(req.body); 
-  try {
-    const newProfile = await Profile.create(req.body);
-    res.status(201).json(newProfile);
-  } catch (error) {
-    next(error);
-  }
-});
+/**
+ * UPDATE my profile
+ * PUT /api/profile/me
+ */
+router.put("/me", protect, async (req, res) => {
+  const { name, email, age } = req.body;
 
+  const profile = await Profile.findOne({ user: req.user._id });
+
+  if (!profile) {
+    return res.status(404).json({ message: "Profile not found" });
+  }
+
+  profile.name = name || profile.name;
+  profile.email = email || profile.email;
+  profile.age = age || profile.age;
+
+  const updatedProfile = await profile.save();
+  res.json(updatedProfile);
+});
 
 export default router;

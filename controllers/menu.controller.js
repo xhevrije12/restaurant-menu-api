@@ -1,75 +1,120 @@
-import Menu from "../models/menuitem.js";
+import MenuItem from "../models/menuitem.js";
 
-// CREATE menu item
-export const createMenu = async (req, res, next) => {
-  try {
-    const { name, price, description } = req.body;
-    if (!name || !price) {
-      return res.status(400).json({ success: false, message: "Name and price required" });
+/**
+ * @desc   
+ * @route   POST /api/menu
+ */
+export const createMenuItem = async (req, res, next) => {
+    try {
+        const { title, price, category, description } = req.body;
+
+        if (!title || !price) {
+            res.status(400);
+            throw new Error("Title and price are required");
+        }
+
+        const item = await MenuItem.create({
+            user: req.user._id,
+            title,
+            price,
+            category,
+            description,
+        });
+
+        res.status(201).json(item);
+    } catch (error) {
+        next(error);
     }
-
-    const menu = await Menu.create({
-      name,
-      price,
-      description: description || "",
-      user: req.user // lidhja me user
-    });
-
-    res.status(201).json(menu);
-  } catch (err) {
-    next(err);
-  }
 };
 
-// READ all menu items for user
-export const getMenu = async (req, res, next) => {
-  try {
-    const menu = await Menu.find({ user: req.user });
-    res.status(200).json(menu);
-  } catch (err) {
-    next(err);
-  }
+/**
+ * @desc   
+ * @route   GET /api/menu
+ */
+export const getMyMenu = async (req, res, next) => {
+    try {
+        const items = await MenuItem.find({ user: req.user._id });
+        res.status(200).json(items);
+    } catch (error) {
+        next(error);
+    }
 };
 
-// UPDATE menu item
-export const updateMenu = async (req, res, next) => {
-  try {
-    console.log("REQ.USER:", req.user);
-    console.log("PARAMS.ID:", req.params.id);
+/**
+ * @desc    
+ * @route   GET /api/menu/:id
+ */
+export const getMenuItemById = async (req, res, next) => {
+    try {
+        const item = await MenuItem.findById(req.params.id);
 
-    const menu = await Menu.findById(req.params.id);
-    if (!menu) {
-      return res.status(404).json({ success: false, message: "Menu item not found" });
+        if (!item) {
+            res.status(404);
+            throw new Error("Menu item not found");
+        }
+
+        if (item.user.toString() !== req.user._id.toString()) {
+            res.status(403);
+            throw new Error("Not authorized to view this item");
+        }
+
+        res.status(200).json(item);
+    } catch (error) {
+        next(error);
     }
-
-    if (menu.user.toString() !== req.user) {
-      return res.status(403).json({ success: false, message: "Not authorized" });
-    }
-
-    Object.assign(menu, req.body);
-    await menu.save();
-
-    res.status(200).json({ success: true, data: menu });
-  } catch (err) {
-    next(err);
-  }
 };
 
-// DELETE menu item
-export const deleteMenu = async (req, res, next) => {
-  try {
-    const menu = await Menu.findById(req.params.id);
-    if (!menu) {
-      return res.status(404).json({ success: false, message: "Menu item not found" });
-    }
+/**
+ * @desc    
+ * @route   PUT /api/menu/:id
+ */
+export const updateMenuItem = async (req, res, next) => {
+    try {
+        const item = await MenuItem.findById(req.params.id);
 
-    if (menu.user.toString() !== req.user) {
-      return res.status(403).json({ success: false, message: "Not authorized" });
-    }
+        if (!item) {
+            res.status(404);
+            throw new Error("Menu item not found");
+        }
 
-    await menu.remove();
-    res.status(200).json({ success: true, message: "Menu item deleted successfully" });
-  } catch (err) {
-    next(err);
-  }
+        if (item.user.toString() !== req.user._id.toString()) {
+            res.status(403);
+            throw new Error("Not authorized to update this item");
+        }
+
+        item.title = req.body.title || item.title;
+        item.price = req.body.price || item.price;
+        item.category = req.body.category || item.category;
+        item.description = req.body.description || item.description;
+
+        const updatedItem = await item.save();
+        res.status(200).json(updatedItem);
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * @desc   
+ * @route   DELETE /api/menu/:id
+ */
+export const deleteMenuItem = async (req, res, next) => {
+    try {
+        const item = await MenuItem.findById(req.params.id);
+
+        if (!item) {
+            res.status(404);
+            throw new Error("Menu item not found");
+        }
+
+        if (item.user.toString() !== req.user._id.toString()) {
+            res.status(403);
+            throw new Error("Not authorized to delete this item");
+        }
+
+        await item.deleteOne();
+        res.status(200).json({ message: "Menu item deleted successfully" });
+    } catch (error) {
+        next(error);
+    }
 };
